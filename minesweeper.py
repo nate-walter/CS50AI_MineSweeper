@@ -229,7 +229,7 @@ class MinesweeperAI():
         # double loop to compare
         for sentence1 in knowledge_copy:
             for sentence2 in knowledge_copy:
-                if sentence1.cells.issubset(sentence2) and sentence1 != sentence2:
+                if sentence1.cells.issubset(sentence2.cells) and sentence1 != sentence2:
                     new_cells = sentence2.cells - sentence1.cells
                     new_count = sentence2.count - sentence1.count
                     new_sentence = Sentence(new_cells, new_count)
