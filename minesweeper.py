@@ -105,27 +105,30 @@ class Sentence():
         """
         Returns the set of all cells in self.cells known to be mines.
         """
-        raise NotImplementedError
+        return set(self.cells) if self.count == len(self.cells) else set()
 
     def known_safes(self):
         """
         Returns the set of all cells in self.cells known to be safe.
         """
-        raise NotImplementedError
+        return set(self.cells) if self.count == 0 else set()
 
     def mark_mine(self, cell):
         """
         Updates internal knowledge representation given the fact that
         a cell is known to be a mine.
         """
-        raise NotImplementedError
+        if cell in self.cells:
+            self.cells.remove(cell)
+            self.count -= 1
 
     def mark_safe(self, cell):
         """
         Updates internal knowledge representation given the fact that
         a cell is known to be safe.
         """
-        raise NotImplementedError
+        if cell in self.cells:
+            self.cells.remove(cell)
 
 
 class MinesweeperAI():
@@ -182,7 +185,59 @@ class MinesweeperAI():
             5) add any new sentences to the AI's knowledge base
                if they can be inferred from existing knowledge
         """
-        raise NotImplementedError
+        self.moves_made.add(cell)
+
+        self.safes.add(cell)
+
+        # Create an empty set for all neighbors
+        neighbors = set()
+
+        # Loop over the cells in on row and column in the given game
+        for i in range(cell[0] - 1, cell[0] + 2):
+            for j in range(cell[1] - 1, cell[1] + 2):
+
+                # Ignore the cell itself
+                if (i, j) == cell:
+                    continue
+                
+                if 0 <= i < self.height and 0 <= j < self.width:
+                    neighbors.add((i, j))
+        
+        # Create a new sentence with these neighbors and count
+        new_sentence = Sentence(neighbors, count)
+
+        # Add this new sentence to the AI's knowledge base
+        self.knowledge.append(new_sentence)
+
+
+        for sentence in self.knowledge:
+            # Get known mines and safes from sentence
+            mines = sentence.known_mines()
+            safes = sentence.known_safes()
+
+            # Mark known mines and remove them from sentences
+            for mine in mines:
+                self.mark_mine(mine)
+
+            # Mark known safes  and remove them from the sentences
+            for safe in safes:
+                self.mark_safe(safe)
+
+        # Copy of self.knowledge to iterate over to avoid modifying
+        knowledge_copy = self.knowledge.copy()
+
+        # double loop to compare
+        for sentence1 in knowledge_copy:
+            for sentence2 in knowledge_copy:
+                if sentence1.cells.issubset(sentence2) and sentence1 != sentence2:
+                    new_cells = sentence2.cells - sentence1.cells
+                    new_count = sentence2.count - sentence1.count
+                    new_sentence = Sentence(new_cells, new_count)
+
+                    # Add new sentence to knowledge base if not already there
+                    if new_sentence not in self.knowledge:
+                        self.knowledge.append(new_sentence)
+
 
     def make_safe_move(self):
         """
@@ -193,7 +248,16 @@ class MinesweeperAI():
         This function may use the knowledge in self.mines, self.safes
         and self.moves_made, but should not modify any of those values.
         """
-        raise NotImplementedError
+        
+        # Check if move in safe moves
+        for cell in self.safes:
+            # Make sure cell hasn't been moved to already
+            if cell not in self.moves_made:
+                # Return the safe move
+                return cell
+        # If no safe moves found return None
+        return None
+
 
     def make_random_move(self):
         """
@@ -202,4 +266,15 @@ class MinesweeperAI():
             1) have not already been chosen, and
             2) are not known to be mines
         """
-        raise NotImplementedError
+        # List of all possible moves
+        all_moves = [(i, j) for i in range(self.height) for j in range(self.width)]
+
+        # Filter out moves that have already been made
+        valid_moves = [cell for cell in all_moves if cell not in self.moves_made and cell not in self.mines]
+
+        # If no valid moves left return None
+        if not valid_moves:
+            return None
+
+        # Otherwise return a random choice as a move
+        return random.choice(valid_moves)
